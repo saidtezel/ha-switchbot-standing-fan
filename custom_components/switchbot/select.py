@@ -5,6 +5,7 @@ import logging
 
 import switchbot
 from switchbot import (
+    HorizontalOscillationAngle,
     NightLightState,
     SwitchbotOperationError,
     VerticalOscillationAngle,
@@ -78,100 +79,6 @@ class SwitchBotStandingFanNightLightSelect(SwitchbotEntity, SelectEntity):
         """Set night-light state."""
         await self._device.set_night_light(NIGHT_LIGHT_TO_STATE[option])
         self.async_write_ha_state()
-
-
-HORIZONTAL_ANGLE_OPTIONS = ["30", "60", "90"]
-VERTICAL_ANGLE_OPTIONS = ["30", "60", "90"]
-
-
-_V_OPTION_TO_BYTE = {
-    "30": VerticalOscillationAngle.ANGLE_30.value,
-    "60": VerticalOscillationAngle.ANGLE_60.value,
-    "90": VerticalOscillationAngle.ANGLE_90.value,  # 0x5F (95), not 90
-}
-
-
-def _ensure_angle_cache(coordinator: SwitchbotDataUpdateCoordinator) -> None:
-    """Initialize shared H/V angle state on the coordinator (default 60)."""
-    if not hasattr(coordinator, "_sf_h_option"):
-        coordinator._sf_h_option = "60"  # type: ignore[attr-defined]
-    if not hasattr(coordinator, "_sf_v_option"):
-        coordinator._sf_v_option = "60"  # type: ignore[attr-defined]
-
-
-async def _send_combined_angles(
-    device: switchbot.SwitchbotStandingFan,
-    h_byte: int,
-    v_byte: int,
-) -> bool:
-    """Send a single set-oscillation-params command with both H and V bytes.
-
-    Works around an apparent firmware quirk where pySwitchbot's per-axis
-    commands (which pad the unchanged axis with 0xFF) are ignored.
-    Command layout (after the SwitchBot header `57 0f 41 02 02`):
-        byte 0 = horizontal angle in degrees (30 / 60 / 90)
-        byte 1 = 0xFF (acceleration? unused)
-        byte 2 = vertical angle byte (30 / 60 / 95 — VerticalOscillationAngle)
-        byte 3 = 0xFF (unused)
-    """
-    cmd = f"570f410202{h_byte:02X}FF{v_byte:02X}FF"
-    result = await device._send_command(cmd)  # noqa: SLF001
-    return device._check_command_result(result, 0, {1})  # noqa: SLF001
-
-
-class SwitchBotStandingFanHorizontalAngleSelect(SwitchbotEntity, SelectEntity):
-    """Horizontal oscillation angle for SwitchBot Standing Fan."""
-
-    _device: switchbot.SwitchbotStandingFan
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_translation_key = "horizontal_oscillation_angle"
-    _attr_options = HORIZONTAL_ANGLE_OPTIONS
-
-    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
-        """Initialize the select entity."""
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.base_unique_id}_h_angle"
-        _ensure_angle_cache(coordinator)
-        self._attr_current_option = coordinator._sf_h_option  # type: ignore[attr-defined]
-
-    @exception_handler
-    async def async_select_option(self, option: str) -> None:
-        """Set horizontal oscillation angle (sends combined H+V command)."""
-        v_byte = _V_OPTION_TO_BYTE[self.coordinator._sf_v_option]  # type: ignore[attr-defined]
-        if await _send_combined_angles(self._device, int(option), v_byte):
-            self.coordinator._sf_h_option = option  # type: ignore[attr-defined]
-            self._attr_current_option = option
-            self.async_write_ha_state()
-
-
-class SwitchBotStandingFanVerticalAngleSelect(SwitchbotEntity, SelectEntity):
-    """Vertical oscillation angle for SwitchBot Standing Fan.
-
-    Note: 90° maps to internal byte 95 (0x5F) due to firmware encoding
-    (byte 0x5A / 90 is interpreted as an axis halt).
-    """
-
-    _device: switchbot.SwitchbotStandingFan
-    _attr_entity_category = EntityCategory.CONFIG
-    _attr_translation_key = "vertical_oscillation_angle"
-    _attr_options = VERTICAL_ANGLE_OPTIONS
-
-    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
-        """Initialize the select entity."""
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{coordinator.base_unique_id}_v_angle"
-        _ensure_angle_cache(coordinator)
-        self._attr_current_option = coordinator._sf_v_option  # type: ignore[attr-defined]
-
-    @exception_handler
-    async def async_select_option(self, option: str) -> None:
-        """Set vertical oscillation angle (sends combined H+V command)."""
-        h_option = self.coordinator._sf_h_option  # type: ignore[attr-defined]
-        v_byte = _V_OPTION_TO_BYTE[option]
-        if await _send_combined_angles(self._device, int(h_option), v_byte):
-            self.coordinator._sf_v_option = option  # type: ignore[attr-defined]
-            self._attr_current_option = option
-            self.async_write_ha_state()
 
 
 class SwitchBotMeterProCO2TimeFormatSelect(SwitchbotEntity, SelectEntity):
