@@ -39,7 +39,13 @@ async def async_setup_entry(
     if isinstance(coordinator.device, switchbot.SwitchbotMeterProCO2):
         async_add_entities([SwitchBotMeterProCO2TimeFormatSelect(coordinator)], True)
     elif isinstance(coordinator.device, switchbot.SwitchbotStandingFan):
-        async_add_entities([SwitchBotStandingFanNightLightSelect(coordinator)])
+        async_add_entities(
+            [
+                SwitchBotStandingFanNightLightSelect(coordinator),
+                SwitchBotStandingFanHorizontalAngleSelect(coordinator),
+                SwitchBotStandingFanVerticalAngleSelect(coordinator),
+            ]
+        )
 
 
 NIGHT_LIGHT_OFF = "off"
