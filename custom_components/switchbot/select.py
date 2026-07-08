@@ -81,6 +81,90 @@ class SwitchBotStandingFanNightLightSelect(SwitchbotEntity, SelectEntity):
         self.async_write_ha_state()
 
 
+HORIZONTAL_ANGLE_OPTIONS = ["30", "60", "90"]
+VERTICAL_ANGLE_OPTIONS = ["30", "60", "90"]
+
+# Option string -> pySwitchbot angle enum. Passing the enum lets the library
+# emit the correct byte (horizontal 90 -> 0x5A, vertical 90 -> 0x5F/95).
+_H_OPTION_TO_ENUM = {
+    "30": HorizontalOscillationAngle.ANGLE_30,
+    "60": HorizontalOscillationAngle.ANGLE_60,
+    "90": HorizontalOscillationAngle.ANGLE_90,
+}
+_V_OPTION_TO_ENUM = {
+    "30": VerticalOscillationAngle.ANGLE_30,
+    "60": VerticalOscillationAngle.ANGLE_60,
+    "90": VerticalOscillationAngle.ANGLE_90,  # enum value 95 -> byte 0x5F
+}
+# Raw device byte -> option string. Vertical 90° reads back as 95.
+_H_BYTE_TO_OPTION = {30: "30", 60: "60", 90: "90"}
+_V_BYTE_TO_OPTION = {30: "30", 60: "60", 95: "90"}
+
+
+class SwitchBotStandingFanHorizontalAngleSelect(SwitchbotEntity, SelectEntity):
+    """Horizontal oscillation angle for SwitchBot Standing Fan."""
+
+    _device: switchbot.SwitchbotStandingFan
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "horizontal_oscillation_angle"
+    _attr_options = HORIZONTAL_ANGLE_OPTIONS
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize the select entity."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_h_angle"
+        self._last_option: str | None = None
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current horizontal angle (device truth, then last-set)."""
+        byte = self._device.get_horizontal_oscillation_angle()
+        if byte is None:
+            return self._last_option
+        return _H_BYTE_TO_OPTION.get(byte, self._last_option)
+
+    @exception_handler
+    async def async_select_option(self, option: str) -> None:
+        """Set the horizontal oscillation angle."""
+        await self._device.set_horizontal_oscillation_angle(_H_OPTION_TO_ENUM[option])
+        self._last_option = option
+        self.async_write_ha_state()
+
+
+class SwitchBotStandingFanVerticalAngleSelect(SwitchbotEntity, SelectEntity):
+    """Vertical oscillation angle for SwitchBot Standing Fan.
+
+    90° maps to device byte 95 (0x5F); the VerticalOscillationAngle enum
+    encodes this, and the getter reports 95 for 90°.
+    """
+
+    _device: switchbot.SwitchbotStandingFan
+    _attr_entity_category = EntityCategory.CONFIG
+    _attr_translation_key = "vertical_oscillation_angle"
+    _attr_options = VERTICAL_ANGLE_OPTIONS
+
+    def __init__(self, coordinator: SwitchbotDataUpdateCoordinator) -> None:
+        """Initialize the select entity."""
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{coordinator.base_unique_id}_v_angle"
+        self._last_option: str | None = None
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the current vertical angle (device truth, then last-set)."""
+        byte = self._device.get_vertical_oscillation_angle()
+        if byte is None:
+            return self._last_option
+        return _V_BYTE_TO_OPTION.get(byte, self._last_option)
+
+    @exception_handler
+    async def async_select_option(self, option: str) -> None:
+        """Set the vertical oscillation angle."""
+        await self._device.set_vertical_oscillation_angle(_V_OPTION_TO_ENUM[option])
+        self._last_option = option
+        self.async_write_ha_state()
+
+
 class SwitchBotMeterProCO2TimeFormatSelect(SwitchbotEntity, SelectEntity):
     """Select entity to set time display format on Meter Pro CO2."""
 
