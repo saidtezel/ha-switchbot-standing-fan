@@ -97,7 +97,7 @@ PLATFORMS_BY_TYPE = {
         Platform.SELECT,
         Platform.SENSOR,
         Platform.SWITCH,
-    ],  # SELECT = night-light only (angles removed — firmware ignores commands)
+    ],  # SELECT = night-light + horizontal/vertical oscillation angle
     SupportedModels.S10_VACUUM.value: [Platform.VACUUM, Platform.SENSOR],
     SupportedModels.S20_VACUUM.value: [Platform.VACUUM, Platform.SENSOR],
     SupportedModels.K10_VACUUM.value: [Platform.VACUUM, Platform.SENSOR],
