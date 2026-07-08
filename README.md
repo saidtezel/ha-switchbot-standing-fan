@@ -17,6 +17,8 @@ When a Standing Fan is discovered, the following entities are created:
 | `switch.<name>_horizontal_oscillation` | Horizontal sweep on/off |
 | `switch.<name>_vertical_oscillation` | Vertical sweep on/off |
 | `select.<name>_night_light` | Off / Soft / Bright |
+| `select.<name>_horizontal_oscillation_angle` | Horizontal sweep width (30° / 60° / 90°) |
+| `select.<name>_vertical_oscillation_angle` | Vertical sweep width (30° / 60° / 90°) |
 | `sensor.<name>_battery` | Battery % |
 
 All commands are sent **locally over BLE** via an active-scanning Bluetooth proxy — no cloud, no SwitchBot account, no SwitchBot Hub required.
@@ -49,7 +51,6 @@ If/when upstream adds STANDING_FAN, simply delete `/config/custom_components/swi
 
 ## Known limitations
 
-- **Oscillation angle setters (30° / 60° / 90°)** are **not exposed**. PySwitchbot's per-axis angle commands don't appear to land on this firmware variant — the device ignores them. Removed from the entity list to avoid confusing UX. Open to PRs that find a reliable command format.
 - **9-hour sleep timer** — not exposed by PySwitchbot.
 - **RGB colour for the night light** — not exposed by PySwitchbot (only LEVEL_1 / LEVEL_2 / OFF). The product is marketed as "RGB Lights" but the BLE command surface does not currently support hue/saturation control. Open to a PySwitchbot PR.
 
