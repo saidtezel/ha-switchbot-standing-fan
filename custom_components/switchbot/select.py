@@ -102,9 +102,6 @@ _V_OPTION_TO_ENUM = {
     "60": VerticalOscillationAngle.ANGLE_60,
     "90": VerticalOscillationAngle.ANGLE_90,  # enum value 95 -> byte 0x5F
 }
-# Raw device byte -> option string. Vertical 90° reads back as 95.
-_H_BYTE_TO_OPTION = {30: "30", 60: "60", 90: "90"}
-_V_BYTE_TO_OPTION = {30: "30", 60: "60", 95: "90"}
 
 
 class SwitchBotStandingFanHorizontalAngleSelect(SwitchbotEntity, SelectEntity):
@@ -123,11 +120,12 @@ class SwitchBotStandingFanHorizontalAngleSelect(SwitchbotEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Return the current horizontal angle (device truth, then last-set)."""
-        byte = self._device.get_horizontal_oscillation_angle()
-        if byte is None:
-            return self._last_option
-        return _H_BYTE_TO_OPTION.get(byte, self._last_option)
+        """Return the last set horizontal angle.
+
+        PySwitchbot 2.2.0 exposes no angle getter, so this reflects
+        HA-initiated changes only (None until first set or after restart).
+        """
+        return self._last_option
 
     @exception_handler
     async def async_select_option(self, option: str) -> None:
@@ -141,7 +139,7 @@ class SwitchBotStandingFanVerticalAngleSelect(SwitchbotEntity, SelectEntity):
     """Vertical oscillation angle for SwitchBot Standing Fan.
 
     90° maps to device byte 95 (0x5F); the VerticalOscillationAngle enum
-    encodes this, and the getter reports 95 for 90°.
+    encodes this when the set command is sent.
     """
 
     _device: switchbot.SwitchbotStandingFan
@@ -157,11 +155,12 @@ class SwitchBotStandingFanVerticalAngleSelect(SwitchbotEntity, SelectEntity):
 
     @property
     def current_option(self) -> str | None:
-        """Return the current vertical angle (device truth, then last-set)."""
-        byte = self._device.get_vertical_oscillation_angle()
-        if byte is None:
-            return self._last_option
-        return _V_BYTE_TO_OPTION.get(byte, self._last_option)
+        """Return the last set vertical angle.
+
+        PySwitchbot 2.2.0 exposes no angle getter, so this reflects
+        HA-initiated changes only (None until first set or after restart).
+        """
+        return self._last_option
 
     @exception_handler
     async def async_select_option(self, option: str) -> None:
