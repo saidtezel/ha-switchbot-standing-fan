@@ -15,6 +15,7 @@ from homeassistant.components.select import SelectEntity
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .coordinator import SwitchbotConfigEntry, SwitchbotDataUpdateCoordinator
 from .entity import SwitchbotEntity, exception_handler
@@ -104,7 +105,9 @@ _V_OPTION_TO_ENUM = {
 }
 
 
-class SwitchBotStandingFanHorizontalAngleSelect(SwitchbotEntity, SelectEntity):
+class SwitchBotStandingFanHorizontalAngleSelect(
+    SwitchbotEntity, SelectEntity, RestoreEntity
+):
     """Horizontal oscillation angle for SwitchBot Standing Fan."""
 
     _device: switchbot.SwitchbotStandingFan
@@ -118,12 +121,21 @@ class SwitchBotStandingFanHorizontalAngleSelect(SwitchbotEntity, SelectEntity):
         self._attr_unique_id = f"{coordinator.base_unique_id}_h_angle"
         self._last_option: str | None = None
 
+    async def async_added_to_hass(self) -> None:
+        """Restore the last selected angle across restarts."""
+        await super().async_added_to_hass()
+        if (
+            last_state := await self.async_get_last_state()
+        ) is not None and last_state.state in self._attr_options:
+            self._last_option = last_state.state
+
     @property
     def current_option(self) -> str | None:
         """Return the last set horizontal angle.
 
         PySwitchbot 2.2.0 exposes no angle getter, so this reflects
-        HA-initiated changes only (None until first set or after restart).
+        HA-initiated changes only (None until first set). It is restored
+        across restarts but does not track changes made from the app.
         """
         return self._last_option
 
@@ -135,7 +147,9 @@ class SwitchBotStandingFanHorizontalAngleSelect(SwitchbotEntity, SelectEntity):
         self.async_write_ha_state()
 
 
-class SwitchBotStandingFanVerticalAngleSelect(SwitchbotEntity, SelectEntity):
+class SwitchBotStandingFanVerticalAngleSelect(
+    SwitchbotEntity, SelectEntity, RestoreEntity
+):
     """Vertical oscillation angle for SwitchBot Standing Fan.
 
     90° maps to device byte 95 (0x5F); the VerticalOscillationAngle enum
@@ -153,12 +167,21 @@ class SwitchBotStandingFanVerticalAngleSelect(SwitchbotEntity, SelectEntity):
         self._attr_unique_id = f"{coordinator.base_unique_id}_v_angle"
         self._last_option: str | None = None
 
+    async def async_added_to_hass(self) -> None:
+        """Restore the last selected angle across restarts."""
+        await super().async_added_to_hass()
+        if (
+            last_state := await self.async_get_last_state()
+        ) is not None and last_state.state in self._attr_options:
+            self._last_option = last_state.state
+
     @property
     def current_option(self) -> str | None:
         """Return the last set vertical angle.
 
         PySwitchbot 2.2.0 exposes no angle getter, so this reflects
-        HA-initiated changes only (None until first set or after restart).
+        HA-initiated changes only (None until first set). It is restored
+        across restarts but does not track changes made from the app.
         """
         return self._last_option
 
